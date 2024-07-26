@@ -63,9 +63,8 @@ local function moveCharacter()
             backTween:Play()
             backTween.Completed:Wait()
             forwardTween:Play()
-            forwardTween.Completed:Wait()
+            forwardTween.Completed:Wait() 
 
-            -- Ensure character faces the target
             HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position, targetHumanoidRootPart.Position)
         end
     end
