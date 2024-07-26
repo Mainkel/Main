@@ -1,0 +1,164 @@
+-- This script is for educational purposes only.
+-- Ensure you have appropriate permissions and use it responsibly.
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+local targetPlayer = nil
+local targetCharacter = nil
+local ahhSpam = false
+local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut) -- Updated tween time
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TextBox = Instance.new("TextBox")
+local SubmitButton = Instance.new("TextButton")
+local StopButton = Instance.new("TextButton")
+
+ScreenGui.Parent = game.CoreGui
+
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+TextBox.Size = UDim2.new(0, 200, 0, 50)
+TextBox.Position = UDim2.new(0.5, -100, 0, 20)
+TextBox.PlaceholderText = "Enter Player Name"
+TextBox.Parent = MainFrame
+
+SubmitButton.Size = UDim2.new(0, 200, 0, 50)
+SubmitButton.Position = UDim2.new(0.5, -100, 0, 80)
+SubmitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+SubmitButton.Text = "Submit"
+SubmitButton.Parent = MainFrame
+
+StopButton.Size = UDim2.new(0, 200, 0, 50)
+StopButton.Position = UDim2.new(0.5, -100, 0, 140)
+StopButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+StopButton.Text = "Stop"
+StopButton.Parent = MainFrame
+
+-- Function to move character to the back of the target
+local function moveCharacter()
+    if targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart") then
+        local targetHumanoidRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+
+        while ahhSpam do
+            local backPosition = targetHumanoidRootPart.CFrame * CFrame.new(0, 0, 1) -- Adjusting the back position closer
+            local forwardPosition = targetHumanoidRootPart.CFrame * CFrame.new(0, 0, 0.5) -- Adjusting the forward position
+
+            -- Create tweens for smooth movement
+            local backTween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = backPosition})
+            local forwardTween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = forwardPosition})
+
+            -- Perform the back and forth movement
+            backTween:Play()
+            backTween.Completed:Wait()
+            forwardTween:Play()
+            forwardTween.Completed:Wait()
+
+            -- Ensure character faces the target
+            HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position, targetHumanoidRootPart.Position)
+        end
+    end
+end
+
+-- Function to spam "AHHHHH" in chat
+local function spamAhh()
+    while ahhSpam do
+        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("AHHHHH", "All")
+        wait(5.5)
+    end
+end
+
+-- Function to start targeting a player
+local function startTargeting()
+    ahhSpam = true
+    spawn(spamAhh)
+    moveCharacter()
+end
+
+-- Function to stop targeting a player
+local function stopTargeting()
+    ahhSpam = false
+end
+
+-- Function to handle submit button click
+local function onSubmit()
+    local playerName = TextBox.Text:lower()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Name:lower():find(playerName) then
+            targetPlayer = player
+            targetCharacter = player.Character
+            startTargeting()
+            break
+        end
+    end
+end
+
+-- Function to handle stop button click
+local function onStop()
+    stopTargeting()
+    targetPlayer = nil
+    targetCharacter = nil
+end
+
+SubmitButton.MouseButton1Click:Connect(onSubmit)
+StopButton.MouseButton1Click:Connect(onStop)
+
+-- Make the GUI draggable
+local function makeDraggable(frame)
+    local dragging = false
+    local dragInput, mousePos, framePos
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            framePos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - mousePos
+            frame.Position = UDim2.new(
+                framePos.X.Scale,
+                framePos.X.Offset + delta.X,
+                framePos.Y.Scale,
+                framePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+makeDraggable(MainFrame)
+
+-- Clean up GUI on script end
+ScreenGui.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        ScreenGui:Destroy()
+    end
+end)
